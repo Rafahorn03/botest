@@ -6,6 +6,7 @@ import re
 import argparse
 import time
 import json
+from bs4 import BeautifulSoup
 
 s = requests.session()
 
@@ -22,7 +23,7 @@ def hw():
 # 1. DEFAULT DATA
 pattern = '(?i)(?<=<td>)(.*)(?=<br>Solo)'
 valid_pattern = '(?i)(?<=celista">)(.*)(?=<br>Solo)'
-url = "https://intranet.upv.es:443/pls/soalu/sic_depact.HSemActividades?p_campus=V&p_tipoact=6607&p_codacti=20705&p_vista=intranet&p_idioma=c&p_solo_matricula_sn=&p_anc=filtro_actividad"
+url = "https://intranet.upv.es/pls/soalu/sic_depact.HSemActividades?p_campus=V&p_tipoact=6690&p_codacti=21229&p_vista=intranet&p_idioma=c&p_solo_matricula_sn=&p_anc=filtro_actividad"
 headers = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:106.0) Gecko/20100101 Firefox/106.0", 
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -74,11 +75,16 @@ def get_time(schedule):
     return result # sorted(result)
 
 def reservar(item):
-    link_pattern = '(?i)(?<=<a href=")(.*)(?=" class="upv_enlacelista">%s)' % str(item[-5:])
-    link = re.findall(link_pattern, r.text)
-    if len(link) != 0:
-            s.get("https://intranet.upv.es/pls/soalu/" + link[0])
+    item =  item[-6:]
+    
+    parser = BeautifulSoup(r.text, "html.parser")
+    links = parser.find_all(class_="upv_enlacelista")
+    
+    for link in links:
+        if item in str(link):
+            s.get("https://intranet.upv.es/pls/soalu/" + link.get('href'))
             print(item + " --> RESERVADO!")
+            break
 
 def loop_reserva(item):
     while True:
@@ -115,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument('-u','--user', help='Username', required=True)
     parser.add_argument('-p','--password', help='PIN to login', required=True)
     parser.add_argument('-l','--list', help='List available schedule (Y/N)')
-    parser.add_argument('-x','--preferencias', help='"MU002,MU003,MU025,MU026,MU053,MU054"')
+    parser.add_argument('-x','--preferencias', help='"MUS002,MUS003,MUS025,MUS026,MUS053,MUS054"')
     parser.add_argument('-b','--loop', help='Intentarlo hasta que esté disponible (Y/N)')
     args = parser.parse_args()
     user = args.user
